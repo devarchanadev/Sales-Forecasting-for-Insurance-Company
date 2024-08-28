@@ -1,0 +1,170 @@
+---
+title: "Sales Forecasting For Insurance Company"
+output:
+  html_document: default
+  word_document: default
+date: "2023-09-15"
+---
+
+# PROJECT OVERVIEW
+
+The insurance company benchmark data set gives information on customers. Specifically, it contains 86 variables on product-usage data and socio-demographic data derived from zip area codes. There are 5,822 customers in the training set and another 4,000 in the test set. The data were collected to answer the following questions: We will predict who will be interested in buying a caravan insurance policy and give an explanation why they did (The data can be found in the ISLR2 package >data(Caravan).)
+
+
+#First we will develop a model using the linear model.
+```{r}
+library(ISLR2)
+data(Caravan)
+which(is.na(Caravan) == TRUE)
+Caravan$Purch <- as.numeric(Caravan$Purchase == "Yes")
+set.seed(123)
+indis <- sample(1:nrow(Caravan), round(40/100*nrow(Caravan)), replace = FALSE)
+caravan_train <- Caravan[indis, ]
+caravan_test <- Caravan[-indis, ]
+lm.fit <- lm(Purch~., data = caravan_train)
+lm_pred <- predict(lm.fit, caravan_test )
+summary(lm.fit)
+```
+#Therefore, the positive coefficients and variables with lower p value and number of '*'s against it have significance and show likelihood of interest of purchase of Caravan insurance policy.
+
+
+
+#Now, we will develop a model using Forwards Selection, Backwards Selection, Lasso regression, and Ridge regression.
+
+#Forward selection
+```{r}
+library(leaps)
+set.seed(123)
+regfit.fwd <- regsubsets(Purch~., data = caravan_train, nbest = 1, nvmax = 85, method = "forward")
+
+summary_fwd <- summary(regfit.fwd)
+
+#identifying the optimal models
+which(summary_fwd$cp == min(summary_fwd$cp))
+which(summary_fwd$bic == min(summary_fwd$bic))
+which(summary_fwd$rss == min(summary_fwd$rss))
+which(summary_fwd$adjr2 == max(summary_fwd$adjr2))
+
+#selecting 85 as the best subset forward. We chose 85 from the optimal model although we could have chosen fewer variables as there are a lot of fluctuations in the data so we had to keep all the variables even though the complexity will increase. But we cannot afford to lose the variation.
+coef(regfit.fwd, 85)
+```
+#Therefore, the positive coefficients show chances of purchase Caravan insurance policy.
+
+
+
+#backward selection
+```{r}
+library(leaps)
+set.seed(123)
+regfit.bwd <- regsubsets(Purch~., data = caravan_train, nbest = 1, nvmax = 85, method = "backward")
+
+
+# examine the best "p" variables models
+
+
+summary_bwd <- summary(regfit.bwd)
+
+
+#identifying the optimal models
+which(summary_bwd$cp == min(summary_bwd$cp))
+which(summary_bwd$bic == min(summary_bwd$bic))
+which(summary_bwd$rss == min(summary_bwd$rss))
+which(summary_bwd$adjr2 == max(summary_bwd$adjr2))
+
+##selecting 85 as the best subset forward. We chose 85 from the optimal model although we could have chosen fewer variables as there are a lot of fluctuations in the data so we had to keep all the variables even though the complexity will increase. But we cannot afford to lose the variation.
+coef(regfit.bwd, 85)
+```
+#Therefore, the positive coefficients show chances of purchase Caravan insurance policy.
+
+
+#Ridge regression
+```{r}
+library(glmnet) 
+set.seed(123)
+X_train = model.matrix(Purch~., data = caravan_train)
+X_test = model.matrix(Purch~., data = caravan_test)
+#Choosing lambda using cross-validation
+cv.out = cv.glmnet(X_train, caravan_train$Purch, alpha=0)
+sel = cv.out$lambda.min
+sel
+#fitting ridge model
+ridge_mod = glmnet(X_train, caravan_train$Purch, alpha = 0, lambda=sel)
+#Make predictions
+ridge_pred = predict(ridge_mod, s=sel, newx = X_test, type = "response")
+#Calculate test error
+coef(ridge_mod)
+```
+#Therefore, the positive coefficients show likelihood of purchase of Caravan insurance policy.
+
+
+
+#LASSO regression
+```{r}
+set.seed(123)
+X_train = model.matrix(Purch~., data = caravan_train)
+X_test = model.matrix(Purch~., data = caravan_test)
+cv.out2 = cv.glmnet(X_train, caravan_train$Purch, alpha=1)
+sel2 = cv.out2$lambda.min
+sel2
+
+#Fitting lasso model
+lasso_mod = glmnet(X_train, caravan_train$Purch, alpha=1, lambda=sel2)
+#Make predictions
+lasso_pred = predict(lasso_mod, s=sel2, newx=X_test)
+coef(lasso_mod)
+```
+#Therefore, the positive coefficients show likelihood of purchase of Caravan insurance policy.
+
+
+
+#C)Develop a model using logistic regression
+```{r}
+library(leaps)
+logistic_reg <- glm(Purch ~., data = caravan_train, family = "binomial")
+
+pred_logistic <- predict(logistic_reg, newdata = caravan_test, type = "response")
+summary(logistic_reg)
+```
+#We know that, the coefficients of predictor variables reveal how changes in these factors affect the likelihood of someone being interested in buying caravan insurance. Predictor with a zero or close to zero coefficient has almost no impact on the likelihood of purchase.
+#Variables with positive coefficients indicate that an increase in their values increases the chances of interest in caravan insurance.
+#Negative coefficients of predictors indicates that an increase in their values is means less chances of interest in caravan insurance.
+#We see that the "PurchaseYes" variable has a coefficient of 5.313e+01, which means if a customer has already purchased caravan insurance (PurchaseYes = 1), then, there is a higher chance of the customer being interested in buying it again. This shows a strong positive connection between past purchases and current interest.
+#So, we can say that, customers who have previously purchased caravan insurance (PurchaseYes = 1) are more likely to be interested in buying it again.
+
+
+# Data Preparation and Linear Regression Model
+
+## Data Preparation
+First, I loaded the Caravan dataset from the ISLR2 package. I converted the purchase indicator to a numeric variable, where 1 indicates a customer purchased caravan insurance and 0 indicates they did not. To ensure reproducibility, I set a seed for random number generation. Then, I split the data into a training set (40% of the data) and a test set (60%).
+
+## Linear Regression Model
+
+I started by developing a linear regression model to predict the likelihood of purchasing caravan insurance. After fitting the model to the training data, I used it to make predictions on the test set. By analyzing the model summary, I identified which variables had significant coefficients—those with lower p-values and more asterisks ('*')—indicating they were likely to influence the purchase decision.
+
+# Model Development with Selection Methods
+
+Forward Selection
+Next, I applied forward selection using the regsubsets function from the leaps package. This method iteratively added variables to the model to find the best subset that minimizes the criteria like Cp, BIC, RSS, and maximizes adjusted R². Although forward selection identified several models, I chose to include all 85 variables in the final model because of the data's complexity and variability.
+
+## Backward Selection
+
+Similarly, I used backward selection, which starts with all variables and removes the least significant ones. Again, I analyzed the models based on Cp, BIC, RSS, and adjusted R². Despite the ability to select fewer variables, I decided to retain all 85 due to the fluctuations in the data.
+
+## Ridge and Lasso Regression
+
+### Ridge Regression
+
+For the Ridge regression, I used the glmnet package. I created model matrices for the training and test sets and selected the optimal regularization parameter (lambda) through cross-validation. After fitting the Ridge model with this lambda, I predicted the test data and reviewed the coefficients. The positive coefficients indicated a higher likelihood of purchasing caravan insurance.
+
+### Lasso Regression
+
+Lasso regression was applied similarly, but with an alpha value of 1, which enforces more sparsity in the model coefficients. After selecting the optimal lambda through cross-validation, I fitted the Lasso model and made predictions. Again, the coefficients helped me understand which variables were most influential in predicting insurance purchase likelihood.
+
+###Logistic Regression Model
+
+Developing the Logistic Regression Model
+Finally, I developed a logistic regression model to predict the binary outcome of purchasing caravan insurance. After fitting the model to the training data, I made predictions on the test set and examined the summary of the logistic regression.
+
+### Interpretation of Coefficients
+
+In the logistic model, I focused on the coefficients of the predictor variables to understand their impact. Positive coefficients indicated that an increase in those variables increases the likelihood of purchasing insurance. Negative coefficients indicated a decrease in likelihood. Notably, the "PurchaseYes" variable had a high positive coefficient, suggesting that customers who previously purchased caravan insurance are more likely to be interested in buying it again. This strong positive connection between past purchases and current interest highlights a significant predictor of future sales.
