@@ -9,7 +9,7 @@
 - [Project Overview](#-project-overview)
 - [Business Impact](#-business-impact)
 - [Insights and Recommendations](#-insights-and-recommendations)
-- [Why I'm Passionate About This Project](#-why-im-passionate-about-this-project)
+- [Why I'm Passionate About This Project](#-why-i'm-passionate-about-this-project)
 - [Problem Solving](#-problem-solving)
 - [Tools and Techniques](#-tools-and-techniques)
 - [Results and Recommendations](#-results-and-recommendations)
